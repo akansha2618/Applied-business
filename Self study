@@ -1,0 +1,130 @@
+Q.1
+import pandas as pd
+import matplotlib.pyplot as plt
+df = pd.read_csv('/content/NetFlix - NetFlix.csv')
+genre = df['genres'].dropna()
+# Split multiple genres
+genre = genre.str.split(', ').explode()
+genre_count = genre.value_counts()
+print("Top 10 Genres")
+print(genre_count.head(10))
+print("\nBottom 10 Genres")
+print(genre_count.tail(10))
+print("\nMost Popular Genre")
+print(genre_count.idxmax(), "-", genre_count.max())
+print("\nLeast Popular Genre")
+print(genre_count.idxmin(), "-", genre_count.min())
+# Bar Chart
+genre_count.head(10).plot(kind='bar', figsize=(10,5), color='skyblue')
+plt.title("Top 10 Netflix Genres")
+plt.xlabel("Genre")
+plt.ylabel("Count")
+plt.xticks(rotation=45)
+plt.show()
+
+Q.2
+# Convert release_year to integer
+df['release_year'] = df['release_year'].astype(int)
+# Separate Movies and TV Shows
+movies = df[df['type'] == 'Movie']
+tvshows = df[df['type'] == 'TV Show']
+# Find Oldest and Newest Movie
+oldest_movie = movies.loc[movies['release_year'].idxmin()]
+newest_movie = movies.loc[movies['release_year'].idxmax()]
+# Find Oldest and Newest TV Show
+oldest_tvshow = tvshows.loc[tvshows['release_year'].idxmin()]
+newest_tvshow = tvshows.loc[tvshows['release_year'].idxmax()]
+# Display Results
+print("="*60)
+print("OLDEST MOVIE")
+print("="*60)
+print(oldest_movie)
+print("\n" + "="*60)
+print("NEWEST MOVIE")
+print("="*60)
+print(newest_movie)
+print("\n" + "="*60)
+print("OLDEST TV SHOW")
+print("="*60)
+print(oldest_tvshow)
+print("\n" + "="*60)
+print("NEWEST TV SHOW")
+print("="*60)
+print(newest_tvshow)
+
+Q.3
+# Remove missing values from country column
+countries = df['country'].dropna()
+# Split multiple countries into separate rows
+countries = countries.str.split(', ').explode()
+# Count content for each country
+country_count = countries.value_counts()
+# Country with the highest Netflix content
+print("Country with the Highest Netflix Content:")
+print(country_count.idxmax(), "-", country_count.max())
+# Top 10 Countries
+top10 = country_count.head(10)
+print("\nTop 10 Countries:")
+print(top10)
+# Bottom 10 Countries
+bottom10 = country_count.tail(10)
+print("\nBottom 10 Countries:")
+print(bottom10)
+# Horizontal Bar Chart for Top 10 Countries
+plt.figure(figsize=(10,6))
+top10.sort_values().plot(kind='barh', color='orange', edgecolor='black')
+plt.title("Top 10 Countries by Netflix Content")
+plt.xlabel("Number of Titles")
+plt.ylabel("Country")
+plt.grid(axis='x', linestyle='--', alpha=0.7)
+plt.show()
+
+Q.4
+# Remove missing values from director column
+df = df.dropna(subset=['director'])
+# Split multiple directors into separate rows
+df['director'] = df['director'].str.split(', ')
+df = df.explode('director')
+# Director with Highest Number of Movies
+movie_directors = df[df['type'] == 'Movie']['director'].value_counts()
+print("Director with Highest Number of Movies:")
+print(movie_directors.head(1))
+# Director with Highest Number of TV Shows
+tv_directors = df[df['type'] == 'TV Show']['director'].value_counts()
+print("\nDirector with Highest Number of TV Shows:")
+print(tv_directors.head(1))
+# Top 10 Directors Overall
+top10_directors = df['director'].value_counts().head(10)
+print("\nTop 10 Directors:")
+print(top10_directors)
+# Plot Bar Chart
+plt.figure(figsize=(10,6))
+top10_directors.plot(kind='bar', color='green', edgecolor='black')
+plt.title("Top 10 Directors on Netflix")
+plt.xlabel("Director")
+plt.ylabel("Number of Titles")
+plt.xticks(rotation=45, ha='right')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+Q.5
+# Count releases
+before_2020 = df[df['release_year'] < 2020].shape[0]
+during_2020 = df[df['release_year'] == 2020].shape[0]
+after_2020 = df[df['release_year'] > 2020].shape[0]
+# Display Counts
+print("Netflix Releases")
+print("Before 2020 :", before_2020)
+print("During 2020 :", during_2020)
+print("After 2020  :", after_2020)
+# Data for Chart
+categories = ['Before 2020', 'During 2020', 'After 2020']
+counts = [before_2020, during_2020, after_2020]
+# Bar Chart
+plt.figure(figsize=(8,5))
+plt.bar(categories, counts, color=['blue', 'orange', 'green'], edgecolor='black')
+plt.title("Comparison of Netflix Releases")
+plt.xlabel("Release Period")
+plt.ylabel("Number of Titles")
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+
