@@ -1,0 +1,15 @@
+B]
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.figure(figsize=(8,5))
+plt.hist(sales, bins=10, color="skyblue", edgecolor="black")
+plt.title("Histogram of Height of plants Akansha T038")
+plt.xlabel("Height_cm")
+plt.ylabel("Frequency")
+plt.show()
+
+plt.figure(figsize=(8,3))
+sns.boxplot(x=sales, color="orange")
+plt.title("Box Plot of Height of plants Akansha T038")
+plt.xlabel("Height")
+plt.show()
