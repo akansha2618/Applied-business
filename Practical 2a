@@ -1,0 +1,32 @@
+
+A]
+import pandas as pd
+df = pd.read_csv("Indoor_Plant_Health_and_Growth_Factors.csv")
+print(df.head())
+
+sales = df["Height_cm"]
+print("Mean :", sales.mean())
+
+print("Median :", sales.median())
+
+print("Mode :")
+print(sales.mode())
+
+print("Minimum :", sales.min())
+
+print("Maximum :", sales.max())
+
+print("Range :", sales.max() - sales.min())
+
+print("Variance :", sales.var())
+
+print("Standard Deviation :", sales.std())
+
+print("Count :", sales.count())
+
+print("Sum :", sales.sum())
+
+print("\nDescriptive Statistics")
+print(sales.describe())
+
+
