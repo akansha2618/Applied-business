@@ -1,0 +1,72 @@
+Q.1 Calculate the complete correlation matrix for all numerical variables.
+Identify:
+The strongest positive correlation.
+The strongest negative correlation.
+The weakest correlation.
+Display the results.
+correlation = df.corr(numeric_only=True)
+print(correlation)
+#Identify Strongest & Weakest Correlations (excluding self-correlation = 1.0)
+corr_pairs = correlation.unstack()
+corr_pairs = corr_pairs[corr_pairs < 1.0]
+# Strongest Positive
+strongest_pos = corr_pairs.idxmax()
+pos_val = corr_pairs.max()
+# Strongest Negative
+strongest_neg = corr_pairs.idxmin()
+neg_val = corr_pairs.min()
+# Weakest Correlation (closest to 0)
+weakest = corr_pairs.abs().idxmin()
+weak_val = corr_pairs[weakest]
+print("\n=== Key Correlation Insights ===")
+print(f"Strongest Positive Correlation: {strongest_pos} = {pos_val:.4f}")
+print(f"Strongest Negative Correlation: {strongest_neg} = {neg_val:.4f}")
+print(f"Weakest Correlation: {weakest} = {weak_val:.4f}")
+
+Q.2 Build a regression model using:
+X =median_income
+X=housing_median_age
+X=total_rooms
+X=population
+X=households
+Y =median_house_value
+Evaluate the model using:
+• R2
+• Mean Squared Error
+Compare this model with the simple regression model using only median_income.
+X = df[["housing_median_age"]]
+y = df["median_house_value"]
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+model = LinearRegression()
+model.fit(X_train, y_train)
+mean = mean_squared_error(y_test, y_pred)
+print("Mean Squared Error:", mean)
+
+y_pred = model.predict(X_test)
+print("Predicted Values:")
+print(y_pred[:10])
+r2 = r2_score(y_test, y_pred)
+print("R2 Score:", r2)
+
+X = df[["total_rooms"]]
+y = df["median_house_value"]
+
+
+X = df[["population"]]
+y = df["median_house_value"]
+
+
+X = df[["households"]]
+y = df["median_house_value"]
+
+
+Q.3 Find the correlation between:
+• total_rooms
+• median_house_value
+correlation =df["total_rooms"].corr(df["median_house_value"])
+print(correlation)
