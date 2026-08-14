@@ -1,0 +1,17 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+df = pd.read_csv("housing - housing.csv")
+print(df.select_dtypes(include="number").columns)
+
+correlation = df.corr(numeric_only=True)
+print(correlation)
+
+plt.figure(figsize=(10, 7))
+sns.heatmap(
+    correlation,
+    annot=True,
+    cmap="coolwarm"
+)
+plt.title("Correlation Heatmap Akansha T038")
+plt.show()
