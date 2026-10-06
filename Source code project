@@ -1,0 +1,211 @@
+# BUSINESS ANALYTICS PROJECT
+# Supermart Grocery Sales – Retail Analytics Dataset
+# Complete analysis script
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.arima.model import ARIMA
+from scipy.optimize import linprog
+
+# 1. Load data
+df = pd.read_csv("Supermart Grocery Sales - Retail Analytics Dataset.csv")
+df["Order Date"] = pd.to_datetime(df["Order Date"], format="mixed", dayfirst=True)
+
+# 2. Derived variables
+df["Year"] = df["Order Date"].dt.year
+df["Month"] = df["Order Date"].dt.to_period("M").dt.to_timestamp()
+df["Profit_Margin"] = df["Profit"] / df["Sales"]
+
+# 3. Basic EDA
+print(df.head())
+print(df.tail())
+print(df.shape)
+print(df.columns)
+print(df.dtypes)
+print(df.isnull().sum())
+print("Duplicates:", df.duplicated().sum())
+print(df.nunique())
+
+# 4. Descriptive statistics
+for col in ["Sales", "Discount", "Profit"]:
+    print(col)
+    print("Mean:", df[col].mean())
+    print("Median:", df[col].median())
+    print("Mode:", df[col].mode().iloc[0])
+    print("Minimum:", df[col].min())
+    print("Maximum:", df[col].max())
+    print("Range:", df[col].max() - df[col].min())
+    print("Variance:", df[col].var())
+    print("Standard deviation:", df[col].std())
+
+# 5. Category / region analysis
+category_summary = df.groupby("Category").agg(
+    Sales=("Sales","sum"), Profit=("Profit","sum"), Orders=("Order ID","count")
+).sort_values("Sales", ascending=False)
+print(category_summary)
+
+region_summary = df.groupby("Region").agg(
+    Sales=("Sales","sum"), Profit=("Profit","sum"), Orders=("Order ID","count")
+).sort_values("Sales", ascending=False)
+print(region_summary)
+
+# 6. Correlation
+corr = df[["Sales","Discount","Profit"]].corr()
+print(corr)
+
+# 7. Regression: Profit predicted by Sales
+X = sm.add_constant(df[["Sales"]])
+y = df["Profit"]
+model = sm.OLS(y, X).fit()
+print(model.summary())
+print("Regression equation: Profit =", model.params["const"],
+      "+", model.params["Sales"], "* Sales")
+print("R2:", model.rsquared)
+
+# 8. Hypothesis test: mean sales = 1500
+t_stat, p_value = stats.ttest_1samp(df["Sales"], 1500)
+print("t =", t_stat, "p =", p_value)
+
+# 9. A/B test
+median_discount = df["Discount"].median()
+df["Discount_Group"] = np.where(
+    df["Discount"] < median_discount, "A - Low Discount", "B - High Discount"
+)
+df["High_Sale"] = np.where(
+    df["Sales"] >= df["Sales"].median(), "High Sales", "Low Sales"
+)
+contingency = pd.crosstab(df["Discount_Group"], df["High_Sale"])
+chi2, p, dof, expected = stats.chi2_contingency(contingency)
+print(contingency)
+print("Chi-square:", chi2, "p:", p)
+
+# 10. Sampling distribution / CLT
+rng = np.random.default_rng(42)
+population = df["Sales"].values
+for sample_size in [30, 100, 300]:
+    sample_means = [
+        rng.choice(population, size=sample_size, replace=False).mean()
+        for _ in range(1000)
+    ]
+    print(sample_size, np.mean(sample_means), np.std(sample_means, ddof=1))
+
+# 11. Confidence intervals
+n = len(df)
+mean_sales = df["Sales"].mean()
+sd_sales = df["Sales"].std()
+se = sd_sales / np.sqrt(n)
+for confidence in [0.90, 0.95, 0.99]:
+    alpha = 1 - confidence
+    critical = stats.t.ppf(1-alpha/2, n-1)
+    lower = mean_sales - critical * se
+    upper = mean_sales + critical * se
+    print(confidence, lower, upper)
+
+# 12. Bootstrap median
+boot = []
+for i in range(2000):
+    sample = rng.choice(population, size=n, replace=True)
+    boot.append(np.median(sample))
+print("Bootstrap 95% CI:",
+      np.percentile(boot, 2.5), np.percentile(boot, 97.5))
+
+# 13. Time series
+monthly = df.groupby("Month")["Sales"].sum().asfreq("MS")
+train = monthly.iloc[:-6]
+test = monthly.iloc[-6:]
+
+ets = ExponentialSmoothing(
+    train, trend="add", seasonal="add", seasonal_periods=12,
+    initialization_method="estimated"
+).fit()
+ets_pred = ets.forecast(6)
+
+arima = ARIMA(train, order=(1,1,1)).fit()
+arima_pred = arima.forecast(6)
+
+def forecast_metrics(actual, predicted):
+    error = np.array(actual) - np.array(predicted)
+    return (
+        np.mean(np.abs(error)),
+        np.mean(error**2),
+        np.sqrt(np.mean(error**2))
+    )
+
+print("ETS MAE/MSE/RMSE:", forecast_metrics(test, ets_pred))
+print("ARIMA MAE/MSE/RMSE:", forecast_metrics(test, arima_pred))
+
+# 14. Future forecasts
+ets_full = ExponentialSmoothing(
+    monthly, trend="add", seasonal="add", seasonal_periods=12,
+    initialization_method="estimated"
+).fit()
+print("ETS next 3 months:", ets_full.forecast(3))
+
+arima_full = ARIMA(monthly, order=(1,1,1)).fit()
+print("ARIMA next 3 months:", arima_full.forecast(3))
+
+# 15. Decision making under uncertainty
+monthly_total = df.groupby("Month")["Sales"].sum()
+threshold = monthly_total.median()
+state = np.where(monthly_total >= threshold, "High Demand", "Low Demand")
+prob_high = np.mean(state == "High Demand")
+prob_low = 1 - prob_high
+print("P(High Demand):", prob_high)
+print("P(Low Demand):", prob_low)
+
+# 16. Optimization model
+# Three highest-profit categories are used.
+top3 = df.groupby("Category")["Profit"].mean().sort_values(ascending=False).head(3).index
+profit_per_campaign = np.array([
+    df.loc[df["Category"] == c, "Profit"].mean() * 100 for c in top3
+])
+discount_cost_per_campaign = np.array([
+    (df.loc[df["Category"] == c, "Sales"] *
+     df.loc[df["Category"] == c, "Discount"]).mean() * 100 for c in top3
+])
+# Assumptions: at most 40 campaigns/category, total 100 campaigns,
+# promotion-value budget = Rs. 33,00,000.
+A = np.vstack([np.ones(3), discount_cost_per_campaign])
+b = [100, 3300000]
+result = linprog(
+    -profit_per_campaign,
+    A_ub=A,
+    b_ub=b,
+    bounds=[(0,40)]*3,
+    method="highs"
+)
+print("Optimal allocation:", result.x)
+print("Maximum estimated profit:", -result.fun)
+
+# 17. Simulation
+df["Discount_Band"] = pd.qcut(
+    df["Discount"], q=3, labels=["Low","Medium","High"]
+)
+rng = np.random.default_rng(2026)
+for band in ["Low","Medium","High"]:
+    profits = df.loc[df["Discount_Band"] == band, "Profit"].values
+    totals = [
+        rng.choice(profits, size=500, replace=True).sum()
+        for _ in range(1000)
+    ]
+    print(band, np.mean(totals), np.std(totals, ddof=1))
+
+# 18. One-way ANOVA
+groups = [g["Profit"].values for _, g in df.groupby("Category")]
+F, p = stats.f_oneway(*groups)
+print("ANOVA F:", F, "p:", p)
+
+# 19. Factorial experiment
+factor_df = df[df["Region"].isin(["West","Central"])].copy()
+factor_df["Discount2"] = np.where(
+    factor_df["Discount"] < df["Discount"].median(), "Low", "High"
+)
+factor_model = smf.ols(
+    "Sales ~ C(Discount2) * C(Region)", data=factor_df
+).fit()
+print(sm.stats.anova_lm(factor_model, typ=2))
